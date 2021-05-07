@@ -14,9 +14,6 @@ import numpy as np
 from collections import Counter
 
 
-
-
-
 class LimitedList(list):
 
     # Read-only
@@ -58,7 +55,6 @@ class LimitedList(list):
 def callback(data):
     
     
-    
     seq = data.header.seq
     secs = data.header.stamp.secs
     nsecs = data.header.stamp.nsecs
@@ -84,7 +80,8 @@ def callback(data):
     yaw = math.degrees(moving_avg_euler[0])
     roll = math.degrees(moving_avg_euler[1])
     pitch = math.degrees(moving_avg_euler[2])
-
+   
+    print roll
 
     if (abs(roll) >  3) or (abs(pitch) > 3):
         ramp = 'on'
@@ -157,7 +154,8 @@ def listener():
 
     rospy.init_node('IMU_listner', anonymous = True)
 #     rospy.Timer(rospy.Duration(1.0/60.0), ts.read_temperature_sensor_data)
-    rospy.Subscriber('/imu', Imu, callback)
+    rospy.Subscriber('/mobile_base/sensors/imu_data', Imu, callback)
+#    rospy.Subscriber('/imu', Imu, callback)
 #     rospy.init_node('talker', anonymous=True)
 #     rate = rospy.Rate(60)
 #     while not rospy.is_shutdown():
