@@ -78,12 +78,10 @@ def callback(data):
     moving_avg_q = np.array(q_list).mean(axis = 0)
 
     yaw = math.degrees(moving_avg_euler[0])
-    roll = math.degrees(moving_avg_euler[1])
-    pitch = math.degrees(moving_avg_euler[2])
-   
-    print roll
+    pitch = math.degrees(moving_avg_euler[1]) - 0.45
+    roll = math.degrees(moving_avg_euler[2])
 
-    if (abs(roll) >  3) or (abs(pitch) > 3):
+    if (abs(roll) >  0.75) or (abs(pitch) > 0.75):
         ramp = 'on'
         ramp_list.append(ramp)
 
