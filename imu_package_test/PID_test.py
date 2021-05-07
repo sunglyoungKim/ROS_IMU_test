@@ -61,7 +61,7 @@ def callback(q_cov, ramp):
     velocity_publisher = rospy.Publisher('ramp/cmd_vel', Twist, queue_size=10)
     vel_msg = Twist()
     
-    vel_msg.linear.x = 0.2
+    vel_msg.linear.x = 0.25
     #Since we are moving just in x-axis
     vel_msg.linear.y = 0.
     vel_msg.linear.z = 0.
@@ -70,8 +70,10 @@ def callback(q_cov, ramp):
     vel_msg.angular.z = 0.
     
     error = euler_angle[0] - desire_roll
-    error_list.append(error)
+    error_list.append(error)    
     
+    forward_P = 5
+
     if len(error_list) > 9:
         cur_error = error_list[-1]
         Ierror = np.sum(np.array(error_list))
@@ -79,7 +81,7 @@ def callback(q_cov, ramp):
         turning_input = cur_error * P + Ierror * I + Derror * D
         turning_input = np.clip(neg_limit, pos_limit, turning_input)
         
-        vael_msg.linear.x = np.clip(0, 0.25, np.array(1 / abs(turning_input) * forward_P))
+        vel_msg.linear.x = np.clip(0, 0.7, np.array(1 / abs(turning_input) * forward_P))
         
         vel_msg.angular.z = turning_input
         print(vel_msg)
