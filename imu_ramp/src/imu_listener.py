@@ -62,6 +62,7 @@ def callback(data):
     nsecs = data.header.stamp.nsecs
    
     q = [data.orientation.w, data.orientation.x, data.orientation.y, data.orientation.z]
+
     euler_angle = tf.transformations.euler_from_quaternion(q)
     
     q_cov = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -80,8 +81,9 @@ def callback(data):
     moving_avg_q = np.array(q_list).mean(axis = 0)
 
     yaw = math.degrees(moving_avg_euler[0])
-    pitch = math.degrees(moving_avg_euler[1]) - 0.45
+    pitch = math.degrees(moving_avg_euler[1])
     roll = math.degrees(moving_avg_euler[2])
+
 
     if (abs(roll) >  0.75) or (abs(pitch) > 0.75):
         ramp = 'on'
@@ -114,15 +116,16 @@ def callback(data):
     pose_data.header.stamp.nsecs = nsecs
     
     pose_data.header.frame_id = "base_footprint"
+    
     pose_data.pose.pose.position.x = 0.
     pose_data.pose.pose.position.y = 0.
     pose_data.pose.pose.position.z = 0.
     
     
-    pose_data.pose.pose.orientation.w =moving_avg_q[1]
-    pose_data.pose.pose.orientation.x =moving_avg_q[2]
-    pose_data.pose.pose.orientation.y =moving_avg_q[3]
-    pose_data.pose.pose.orientation.z =moving_avg_q[0]
+    pose_data.pose.pose.orientation.w = moving_avg_q[0]
+    pose_data.pose.pose.orientation.x = moving_avg_q[1]
+    pose_data.pose.pose.orientation.y = moving_avg_q[2]
+    pose_data.pose.pose.orientation.z = moving_avg_q[3]
     
     pose_data.pose.covariance = q_cov
         

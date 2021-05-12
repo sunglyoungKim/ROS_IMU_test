@@ -54,39 +54,56 @@ class LimitedList(list):
 def callback(q_cov, ramp):
     desire_roll = 0.
     turning_input = 0.
+    max_forward = 0.7
+    pos_limit = 0.5 #for turning
+    neg_limit = -0.5 # for turning
     
-    pos_limit = 0.15
-    neg_limit = -0.15
-    
-    q = [q_cov.pose.pose.orientation.w, q_cov.pose.pose.orientation.x, q_cov.pose.pose.orientation.y, q_cov.pose.pose.orientation.z]
-    euler_angle = tf.transformations.euler_from_quaternion(q)
-    velocity_publisher = rospy.Publisher('ramp/cmd_vel', Twist, queue_size=10)
-    vel_msg = Twist()
-    
-    vel_msg.linear.x = 0.25
-    #Since we are moving just in x-axis
-    vel_msg.linear.y = 0.
-    vel_msg.linear.z = 0.
-    vel_msg.angular.x = 0.
-    vel_msg.angular.y = 0.
-    vel_msg.angular.z = 0.
-    
-    error = euler_angle[0] - desire_roll
-    error_list.append(error)    
-    
-    forward_P = 5
+    if ramp.ramp == 'on':
+        
+        q = [q_cov.pose.pose.orientation.w, q_cov.pose.pose.orientation.x, q_cov.pose.pose.orientation.y, q_cov.pose.pose.orientation.z]
+        euler_angle = tf.transformations.euler_from_quaternion(q)
 
-    if len(error_list) > 9:
-        cur_error = error_list[-1]
-        Ierror = np.sum(np.array(error_list))
-        Derror = (error_list[-1] - error_list[1]) / 10
-        turning_input = cur_error * P + Ierror * I + Derror * D
-        turning_input = np.clip(neg_limit, pos_limit, turning_input)
+        yaw = math.degrees(euler_angle[0])
+        pitch = math.degrees(euler_angle[1])
+        roll = math.degrees(euler_angle[2])
+
+
+        velocity_publisher = rospy.Publisher('cmd_vel_mux/input/teleop/', Twist, queue_size=10)
+        vel_msg = Twist()
         
-        vel_msg.linear.x = np.clip(0, 0.7, np.array(1 / abs(turning_input) * forward_P))
+        vel_msg.linear.x = 0.
+        #Since we are moving just in x-axis
+        vel_msg.linear.y = 0.
+        vel_msg.linear.z = 0.
+        vel_msg.angular.x = 0.
+        vel_msg.angular.y = 0.
+        vel_msg.angular.z = 0.
+
+        error = roll - desire_roll
+        error_list.append(error)    
         
-        vel_msg.angular.z = turning_input
-        print(vel_msg)
+        forward_c = 5.0
+
+        if len(error_list) > 9:
+            cur_error = error_list[-1]
+            Ierror = np.sum(np.array(error_list))
+            Derror = (error_list[-1] - error_list[1]) / 10
+
+            turning_input = cur_error * P + Ierror * I + Derror * D
+            
+
+            vel_msg.linear.x = np.clip(np.array(abs(turning_input) * forward_c), 0, max_forward)
+            
+
+            turning_input = np.clip(np.array(turning_input), neg_limit, pos_limit )
+            
+            if pitch < 0:
+                turning_input  = -1* turning_input 
+
+            
+            vel_msg.angular.z =  turning_input
+            
+            velocity_publisher.publish(vel_msg)
 
 def listener():
     rospy.init_node('q_ramp_listner', anonymous = True)    
@@ -103,8 +120,8 @@ if __name__ == '__main__':
     
     global error_list, P, I, D
     P = 1.
-    I = 1.
-    D = 1.
+    I = 0.5
+    D = 0.5
 
     error_list = LimitedList(maxLen = 10) # limitied list
     listener()
