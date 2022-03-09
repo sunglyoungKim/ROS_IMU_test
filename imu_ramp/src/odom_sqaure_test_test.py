@@ -10,6 +10,7 @@ import numpy as np
 import math
 import distutils
 import tf
+import time
 
 class LimitedList(list):
     """
@@ -58,13 +59,11 @@ class sending_signals(object):
 
     def __init__(self):
 
-    self.node_name = "sqaure_move"
-    self.odom_sub_name = "/odom"
-    self.vel_pub_name = "/cmd_vel_mux/input/navi"
-    self.vel_pub = None
-    self.odometry_sub = None
-    self.queue_size = 10
-    self.pub_rate= 0.1
+        self.node_name = "sqaure_move"
+        self.odom_sub_name = "/odom"
+        self.vel_pub_name = "/cmd_vel_mux/input/navi"
+        self.queue_size = 10
+        self.pub_rate= 0.1
 
     def odom_ros_sub(self, msg):
         self.odom_pose = msg.pose.pose
@@ -77,9 +76,11 @@ class sending_signals(object):
         # Create a Ros node
         rospy.init_node(self.node_name, anonymous = True, log_level=rospy.INFO)
 
-        rospy.on_shutdown(self.stop_robot)
+        rospy.on_shutdown(self.stop_ros_node)
 
-        self.odometry_sub = ros.Subscriber(self.odom_sub_name, Odometry, callback=self.odom_ros_sub, queue_size= self.queue_size)
+        self.odometry_sub = rospy.Subscriber(self.odom_sub_name, Odometry, callback=self.odom_ros_sub, queue_size= self.queue_size)
+        self.vel_pub  = rospy.Publisher(self.vel_pub_name, Twist, queue_size=10)
+
 
     def stop_ros_node(self):
 
@@ -109,122 +110,35 @@ class squaremovevel(sending_signals):
 
             msg = Twist()
             msg.linear.x = speed
-            msg.angular.z = 10self.vel_ros_pub(msg)
+            msg.angular.z = 0
+            self.vel_ros_pub(msg)
             time.sleep(self.pub_rate)
             
-    def turn(self, duration, ang_speed)
+    def turn(self, duration, ang_speed):
+
+        self.t_init = time.time()
+
+        while time.time() - self.t_init < duration and rospy.is_shutdown() == False:
+
+            msg = Twist()
+            msg.angular.x = 0
+            msg.angular.z = ang_speed
+            self.vel_ros_pub(msg)
+            time.sleep(self.pub_rate)
+
+    def move(self):
+        self.go_forward(2, 0.2)
+        self.turn(2, -0.5)
 
 
-
-
-
-
-
-    # def PID(error_list, p, q, desire_x, vel_msg):
-
-    #     error = p[0] - desire_x 
-    #     error_list.append(error)    
-        
-    #     forward_c = 5.0
-
-    #     if len(error_list) > 9:
-    #         cur_error = error_list[-1]
-    #         Ierror = np.sum(np.array(error_list))
-    #         Derror = (error_list[-1] - error_list[1]) / 10
-
-    #         input_signal = cur_error * P + Ierror * I + Derror * D
-            
-
-    #         vel_msg.linear.x = np.clip(np.array(abs(turning_input) * forward_c), 0, max_forward)
-            
-
-    #         turning_input = np.clip(np.array(turning_input), neg_limit, pos_limit )
-            
-    #         if pitch < 0:
-    #             turning_input  = -1* turning_input 
-
-            
-    #         vel_msg.angular.z =  turning_input
-            
-    #         velocity_publisher.publish(vel_msg)
-
-
-# def callback(data, desire_x, desire_yaw):
-
-    
-#     turning_input = 0.
-#     max_forward = 0.2
-#     pos_limit = 0.3 #for turning
-#     neg_limit = -0.3 # for turning
-    
-    
-#     seq = data.header.seq
-#     secs = data.header.stamp.secs
-#     nsecs = data.header.stamp.nsecs
-
-#     p = [data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z]
-   
-#     q = [data.pose.pose.orientation.w, data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z]
-
-#     euler_angle = tf.transformations.euler_from_quaternion(q)
-    
-#     q_cov = data.pose.covariance
- 
-#     yaw = math.degrees(euler_angle[0])
-#     pitch = math.degrees(euler_angle[1])
-#     roll = math.degrees(euler_angle[2])
-
-
-#     velocity_publisher = rospy.Publisher('cmd_vel_mux/input/navi/', Twist, queue_size=10)
-#     vel_msg = Twist()
-    
-#     vel_msg.linear.x = 0.
-#     #Since we are moving just in x-axis
-#     vel_msg.linear.y = 0.
-#     vel_msg.linear.z = 0.
-#     vel_msg.angular.x = 0.
-#     vel_msg.angular.y = 0.
-#     vel_msg.angular.z = 0.
-
-    
-    # error_in_x = p[0] - desire_x 
-    # error_list.append(error_in_x)    
-    
-    # forward_c = 5.0
-
-    # if len(error_list) > 9:
-    #     cur_error = error_list[-1]
-    #     Ierror = np.sum(np.array(error_list))
-    #     Derror = (error_list[-1] - error_list[1]) / 10
-
-    #     turning_input = cur_error * P + Ierror * I + Derror * D
-        
-
-    #     vel_msg.linear.x = np.clip(np.array(abs(turning_input) * forward_c), 0, max_forward)
-        
-
-    #     turning_input = np.clip(np.array(turning_input), neg_limit, pos_limit )
-        
-    #     if pitch < 0:
-    #         turning_input  = -1* turning_input 
-
-        
-    #     vel_msg.angular.z =  turning_input
-        
-    #     velocity_publisher.publish(vel_msg)
-
-# def listener():
-#     rospy.init_node('q_ramp_listner', anonymous = True)    
-    
-#     q_sub = message_filters.Subscriber('/q_cov_from_IMU', PoseWithCovarianceStamped)
-#     ramp_sub = message_filters.Subscriber('/ramp', ramp_d)
-    
-#     ts = message_filters.TimeSynchronizer([q_sub, ramp_sub], 1 )
-#     ts.registerCallback(callback)
-    
-#     rospy.spin()
 
 if __name__ == '__main__':
+
+
+    r = squaremovevel()
+
+    r.start_ros_node()
+    r.move()
     
     # global error_list, P, I, D
     # P = 0.2
